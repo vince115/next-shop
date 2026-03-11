@@ -2,12 +2,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { checkoutCart } from "@/lib/orderApi";
 
 export default function CheckoutPage() {
 
   const { cartId, items, totalItems, totalPrice, loadCart } = useCartStore();
+  const router = useRouter();
 
   async function checkout() {
 
@@ -18,8 +20,8 @@ export default function CheckoutPage() {
 
     try {
       const order = await checkoutCart(cartId);
-      alert(`Order created #${order.id}`);
       await loadCart();
+      router.push(`/orders/${order.id}`);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Checkout failed";
       alert(message);
