@@ -1,8 +1,14 @@
-export interface Product {
+//frontend/src/types/product.ts
+export interface ProductSummary {
   id: number;
   name: string;
-  description: string | null;
+  imageUrl: string | null;
+  imageUrls?: string[] | null;
   price: number;
+}
+
+export interface Product extends ProductSummary {
+  description: string | null;
   stock: number;
   createdAt: string;
 }

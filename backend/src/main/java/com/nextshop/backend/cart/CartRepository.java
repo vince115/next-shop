@@ -1,3 +1,4 @@
+//backend/src/main/java/com/nextshop/backend/cart/CartRepository.java
 package com.nextshop.backend.cart;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,6 +9,12 @@ import java.util.Optional;
 
 public interface CartRepository extends JpaRepository<Cart, Long> {
 
-    @Query("SELECT c FROM Cart c LEFT JOIN FETCH c.items i LEFT JOIN FETCH i.product WHERE c.id = :id")
+    @Query("""
+                SELECT DISTINCT c
+                FROM Cart c
+                LEFT JOIN FETCH c.items i
+                LEFT JOIN FETCH i.product
+                WHERE c.id = :id
+            """)
     Optional<Cart> findByIdWithItems(@Param("id") Long id);
 }

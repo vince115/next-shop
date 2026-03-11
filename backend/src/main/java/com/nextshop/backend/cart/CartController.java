@@ -1,3 +1,4 @@
+//backend/src/main/java/com/nextshop/backend/cart/CartController.java
 package com.nextshop.backend.cart;
 
 import jakarta.validation.Valid;
@@ -26,20 +27,20 @@ public class CartController {
     @PostMapping("/{cartId}/items")
     @ResponseStatus(HttpStatus.CREATED)
     public CartResponse addItem(@PathVariable Long cartId,
-                                @Valid @RequestBody AddCartItemRequest request) {
+            @Valid @RequestBody AddCartItemRequest request) {
         return cartService.addItem(cartId, request);
     }
 
     @PatchMapping("/{cartId}/items/{itemId}")
     public CartResponse updateItem(@PathVariable Long cartId,
-                                   @PathVariable Long itemId,
-                                   @Valid @RequestBody UpdateCartItemRequest request) {
+            @PathVariable Long itemId,
+            @Valid @RequestBody UpdateCartItemRequest request) {
         return cartService.updateItemQuantity(cartId, itemId, request);
     }
 
     @DeleteMapping("/{cartId}/items/{itemId}")
     public CartResponse removeItem(@PathVariable Long cartId,
-                                   @PathVariable Long itemId) {
+            @PathVariable Long itemId) {
         return cartService.removeItem(cartId, itemId);
     }
 

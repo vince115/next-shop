@@ -1,6 +1,8 @@
+//backend/src/main/java/com/nextshop/backend/product/ProductService.java
 package com.nextshop.backend.product;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,8 +15,9 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
-    public Page<ProductResponse> findAll(Pageable pageable) {
-        return productRepository.findAll(pageable).map(ProductResponse::from);
+    public Page<ProductResponse> findAll(@NonNull Pageable pageable) {
+        Page<Product> page = productRepository.findAll(pageable);
+        return page.map(ProductResponse::from);
     }
 
     public ProductResponse findById(Long id) {

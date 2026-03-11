@@ -1,3 +1,4 @@
+//backend/src/main/java/com/nextshop/backend/product/ProductController.java
 package com.nextshop.backend.product;
 
 import jakarta.validation.Valid;

@@ -1,3 +1,4 @@
+//frontend/src/store/cartStore.ts
 "use client";
 
 import { create } from "zustand";

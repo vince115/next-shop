@@ -1,3 +1,4 @@
+//backend/src/main/java/com/nextshop/backend/cart/UpdateCartItemRequest.java
 package com.nextshop.backend.cart;
 
 import jakarta.validation.constraints.Min;
@@ -10,6 +11,6 @@ import lombok.Setter;
 public class UpdateCartItemRequest {
 
     @NotNull
-    @Min(1)
+    @Min(0)
     private Integer quantity;
 }

@@ -1,3 +1,4 @@
+//backend/src/main/java/com/nextshop/backend/product/Product.java
 package com.nextshop.backend.product;
 
 import jakarta.persistence.*;
@@ -30,6 +31,9 @@ public class Product {
 
     @Column(nullable = false)
     private Integer stock;
+
+    @Column(name = "image_url")
+    private String imageUrl;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

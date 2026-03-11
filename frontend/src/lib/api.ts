@@ -1,12 +1,26 @@
-import { Page, Product } from "@/types/product";
+// frontend/src/lib/api.ts
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
-export async function getProducts(page = 0, size = 20): Promise<Page<Product>> {
-  const res = await fetch(
-    `${API_URL}/api/products?page=${page}&size=${size}&sort=createdAt,desc`,
-    { next: { revalidate: 60 } }
-  );
-  if (!res.ok) throw new Error("Failed to fetch products");
-  return res.json();
+export async function apiFetch<T>(
+  path: string,
+  init?: RequestInit
+): Promise<T | null> {
+  const res = await fetch(`${API_URL}${path}`, {
+    cache: "no-store",
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers || {}),
+    },
+  });
+
+  if (!res.ok) {
+    console.error("API ERROR", res.status);
+    return null;
+  }
+
+  if (res.status === 204) return undefined as T;
+
+  return res.json() as Promise<T>;
 }

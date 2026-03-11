@@ -1,8 +1,12 @@
+//frontend/src/types/cart.ts
 export interface CartItem {
   id: number;
-  productId: number;
-  productName: string;
-  price: number;
+  product: {
+    id: number
+    name: string
+    imageUrl: string
+    price: number
+  }
   quantity: number;
   subtotal: number;
 }

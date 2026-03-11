@@ -1,4 +1,5 @@
-import { getProducts } from "@/lib/api";
+//frontend/src/app/products/page.tsx
+import { getProducts } from "@/lib/productApi";
 import ProductCard from "@/components/ProductCard";
 
 export const metadata = {

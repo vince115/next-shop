@@ -1,3 +1,4 @@
+//backend/src/main/java/com/nextshop/backend/product/ProductResponse.java
 package com.nextshop.backend.product;
 
 import java.math.BigDecimal;
@@ -9,10 +10,16 @@ public record ProductResponse(
         String description,
         BigDecimal price,
         Integer stock,
-        Instant createdAt
-) {
+        String imageUrl,
+        Instant createdAt) {
     static ProductResponse from(Product p) {
-        return new ProductResponse(p.getId(), p.getName(), p.getDescription(),
-                p.getPrice(), p.getStock(), p.getCreatedAt());
+        return new ProductResponse(
+                p.getId(),
+                p.getName(),
+                p.getDescription(),
+                p.getPrice(),
+                p.getStock(),
+                p.getImageUrl(),
+                p.getCreatedAt());
     }
 }

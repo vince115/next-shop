@@ -1,24 +1,26 @@
+//backend/src/main/java/com/nextshop/backend/cart/CartItemResponse.java
 package com.nextshop.backend.cart;
 
 import java.math.BigDecimal;
 
 public record CartItemResponse(
         Long id,
-        Long productId,
-        String productName,
-        BigDecimal price,
+        ProductSummary product,
         Integer quantity,
-        BigDecimal subtotal
-) {
+        BigDecimal subtotal) {
+
     static CartItemResponse from(CartItem item) {
+
         BigDecimal price = item.getProduct().getPrice();
+
         return new CartItemResponse(
                 item.getId(),
-                item.getProduct().getId(),
-                item.getProduct().getName(),
-                price,
+                new ProductSummary(
+                        item.getProduct().getId(),
+                        item.getProduct().getName(),
+                        item.getProduct().getImageUrl(),
+                        price),
                 item.getQuantity(),
-                price.multiply(BigDecimal.valueOf(item.getQuantity()))
-        );
+                price.multiply(BigDecimal.valueOf(item.getQuantity())));
     }
 }
