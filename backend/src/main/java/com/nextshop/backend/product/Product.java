@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -32,8 +34,9 @@ public class Product {
     @Column(nullable = false)
     private Integer stock;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    @OrderBy("position ASC")
+    private List<ProductImage> images = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
