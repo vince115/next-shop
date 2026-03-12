@@ -23,7 +23,6 @@ export default async function ProductPage({
                 <ProductGallery
                     name={product.name}
                     imageUrls={product.imageUrls}
-                    fallbackImage={product.imageUrl}
                 />
 
                 {/* 右側商品資訊 */}
