@@ -6,12 +6,7 @@ import { apiFetch } from "./api";
 function normalizeProduct(product: Product): Product {
     return {
         ...product,
-        imageUrls:
-            product.imageUrls && product.imageUrls.length > 0
-                ? product.imageUrls
-                : product.imageUrl
-                    ? [product.imageUrl]
-                    : [],
+        imageUrls: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : [],
     };
 }
 

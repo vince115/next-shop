@@ -3,6 +3,7 @@ package com.nextshop.backend.product;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record ProductResponse(
         Long id,
@@ -10,7 +11,7 @@ public record ProductResponse(
         String description,
         BigDecimal price,
         Integer stock,
-        String imageUrl,
+        List<String> imageUrls,
         Instant createdAt) {
     static ProductResponse from(Product p) {
         return new ProductResponse(
@@ -19,7 +20,7 @@ public record ProductResponse(
                 p.getDescription(),
                 p.getPrice(),
                 p.getStock(),
-                p.getImageUrl(),
+                p.getImages().stream().map(ProductImage::getUrl).toList(),
                 p.getCreatedAt());
     }
 }

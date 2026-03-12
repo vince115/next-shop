@@ -45,4 +45,11 @@ public class Product {
     void prePersist() {
         this.createdAt = Instant.now();
     }
+
+    public String getImageUrl() {
+        if (images == null || images.isEmpty()) {
+            return null;
+        }
+        return images.get(0).getUrl();
+    }
 }

@@ -12,6 +12,8 @@ export default function ProductCard({ product }: { product: Product }) {
   const [loading, setLoading] = useState(false);
   const [favorite, setFavorite] = useState(false);
 
+  const image = product.imageUrls?.[0] ?? "/images/placeholder.png";
+
   async function handleAddToCart(
     e: React.MouseEvent<HTMLButtonElement>
   ) {
@@ -34,33 +36,31 @@ export default function ProductCard({ product }: { product: Product }) {
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col gap-3">
         {/* 商品圖片 */}
-        {product.imageUrl && (
-          <div className="relative w-full h-40 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden">
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              width={400}
-              height={400}
-              className="max-h-full object-contain transition-transform duration-200 hover:scale-105"
-            />
+        <div className="relative w-full h-40 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden">
+          <Image
+            src={image}
+            alt={product.name}
+            width={400}
+            height={400}
+            className="max-h-full object-contain transition-transform duration-200 hover:scale-105"
+          />
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setFavorite((v) => !v);
-              }}
-              className="absolute right-0 top-0 inline-flex h-9 w-9 items-center justify-center text-gray-700 transition"
-              aria-label={favorite ? "Unfavorite" : "Favorite"}
-            >
-              <Heart
-                size={18}
-                className={favorite ? "fill-red-500 text-red-500" : "text-gray-700"}
-              />
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setFavorite((v) => !v);
+            }}
+            className="absolute right-0 top-0 inline-flex h-9 w-9 items-center justify-center text-gray-700 transition"
+            aria-label={favorite ? "Unfavorite" : "Favorite"}
+          >
+            <Heart
+              size={18}
+              className={favorite ? "fill-red-500 text-red-500" : "text-gray-700"}
+            />
+          </button>
+        </div>
 
         <div className="flex items-start justify-between gap-2">
           <h2 className="text-base font-semibold text-gray-900 leading-snug">

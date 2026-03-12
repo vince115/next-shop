@@ -2,14 +2,13 @@
 export interface ProductSummary {
   id: number;
   name: string;
-  imageUrl: string | null;
   imageUrls?: string[] | null;
   price: number;
   originalPrice?: number | null;
 }
 
 export interface Product extends ProductSummary {
-  description: string | null;
+  description?: string | null;
   stock: number;
   createdAt: string;
 }
