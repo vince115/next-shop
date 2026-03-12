@@ -4,7 +4,6 @@ package com.nextshop.backend.product;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,8 +15,13 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public Page<ProductResponse> getAll(Pageable pageable) {
-        return productService.findAll(pageable);
+    public Page<ProductResponse> getAll(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "category", required = false) String categorySlug
+    ) {
+        return productService.findAll(page, size, sort, categorySlug);
     }
 
     @GetMapping("/{id}")
