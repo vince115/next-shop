@@ -2,6 +2,7 @@
 import { getCategories } from "@/lib/categoryApi";
 import { getProducts } from "@/lib/productApi";
 import ProductsBrowser from "@/components/products/ProductsBrowser";
+import { CategorySidebarProvider } from "@/components/categories/CategorySidebarContext";
 
 export const metadata = {
   title: "Products — Next Shop",
@@ -14,20 +15,10 @@ export default async function ProductsPage({
 }) {
   const { q, category, sort } = await searchParams;
 
-  const [fetchedCategories, data] = await Promise.all([
+  const [categories, data] = await Promise.all([
     getCategories(),
     getProducts(0, 1000, category, sort),
   ]);
-
-  const categories =
-    fetchedCategories.length > 0
-      ? fetchedCategories
-      : [
-        { id: 1, name: "Laptop", slug: "laptop" },
-        { id: 2, name: "Phone", slug: "phone" },
-        { id: 3, name: "Gaming", slug: "gaming" },
-        { id: 4, name: "Accessories", slug: "accessories" },
-      ];
 
   return (
     <main className="min-h-screen bg-white/80">
@@ -37,13 +28,15 @@ export default async function ProductsPage({
           {/* <p className="text-sm text-gray-500">{data.totalElements} items</p> */}
         </div>
 
-        <ProductsBrowser
-          products={data.content}
-          categories={categories}
-          initialQuery={q}
-          initialCategory={category}
-          initialSort={sort}
-        />
+        <CategorySidebarProvider>
+          <ProductsBrowser
+            products={data.content}
+            categories={categories}
+            initialQuery={q}
+            initialCategory={category}
+            initialSort={sort}
+          />
+        </CategorySidebarProvider>
       </div>
     </main>
   );
