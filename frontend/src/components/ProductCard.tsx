@@ -3,12 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { Heart } from "lucide-react";
 import { Product } from "@/types/product";
 import { useCartStore } from "@/store/cartStore";
 
 export default function ProductCard({ product }: { product: Product }) {
   const addItem = useCartStore((s) => s.addItem);
   const [loading, setLoading] = useState(false);
+  const [favorite, setFavorite] = useState(false);
 
   async function handleAddToCart(
     e: React.MouseEvent<HTMLButtonElement>
@@ -28,12 +30,12 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group block overflow-hidden rounded-2xl border border-gray-200 bg-white hover:shadow-md transition"
+      className="group block overflow-hidden rounded-2xl border-0 bg-white hover:shadow-md transition"
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col gap-3">
         {/* 商品圖片 */}
         {product.imageUrl && (
-          <div className="w-full h-40 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden">
+          <div className="relative w-full h-40 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden">
             <Image
               src={product.imageUrl}
               alt={product.name}
@@ -41,6 +43,22 @@ export default function ProductCard({ product }: { product: Product }) {
               height={400}
               className="max-h-full object-contain transition-transform duration-200 hover:scale-105"
             />
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setFavorite((v) => !v);
+              }}
+              className="absolute right-0 top-0 inline-flex h-9 w-9 items-center justify-center text-gray-700 transition"
+              aria-label={favorite ? "Unfavorite" : "Favorite"}
+            >
+              <Heart
+                size={18}
+                className={favorite ? "fill-red-500 text-red-500" : "text-gray-700"}
+              />
+            </button>
           </div>
         )}
 
@@ -65,9 +83,22 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
 
         <div className="mt-auto flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">
-            ${Number(product.price).toFixed(2)}
-          </span>
+          <div className="leading-tight">
+            {product.originalPrice != null && Number(product.originalPrice) > Number(product.price) ? (
+              <div className="flex flex-col">
+                <span className="text-xs font-medium text-gray-400 line-through">
+                  NT$ {Number(product.originalPrice).toFixed(0)}
+                </span>
+                <span className="text-lg font-bold text-gray-900">
+                  NT$ {Number(product.price).toFixed(0)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-lg font-bold text-gray-900">
+                NT$ {Number(product.price).toFixed(0)}
+              </span>
+            )}
+          </div>
           <button
             onClick={handleAddToCart}
             disabled={product.stock === 0 || loading}

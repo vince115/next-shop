@@ -5,6 +5,7 @@ export interface ProductSummary {
   imageUrl: string | null;
   imageUrls?: string[] | null;
   price: number;
+  originalPrice?: number | null;
 }
 
 export interface Product extends ProductSummary {
