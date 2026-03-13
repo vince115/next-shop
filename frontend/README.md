@@ -19,7 +19,9 @@ Features
 
 
 cd backend
+./mvnw clean compile
 mvn spring-boot:run
+./mvnw spring-boot:run
 http://localhost:8080/swagger-ui/index.html
 
 cd frontend
