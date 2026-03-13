@@ -1,6 +1,7 @@
 //backend/src/main/java/com/nextshop/backend/product/Product.java
 package com.nextshop.backend.product;
 
+import com.nextshop.backend.category.Category;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,6 +34,10 @@ public class Product {
 
     @Column(nullable = false)
     private Integer stock;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
     @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
     @OrderBy("position ASC")

@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
@@ -25,4 +26,8 @@ public class ProductRequest {
     @NotNull
     @Min(0)
     private Integer stock;
+
+    private String categorySlug;
+
+    private List<String> imageUrls;
 }
