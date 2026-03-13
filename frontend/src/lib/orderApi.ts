@@ -32,3 +32,18 @@ export async function checkoutCart(cartId: number): Promise<Order> {
 
     return order;
 }
+
+export async function getMyOrders(token: string): Promise<Order[]> {
+    const res = await fetch(`${API_URL}/api/orders/my`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to load my orders (${res.status})`);
+    }
+
+    return (await res.json()) as Order[];
+}

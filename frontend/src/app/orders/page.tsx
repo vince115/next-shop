@@ -1,3 +1,4 @@
+//frontend/src/app/orders/page.tsx
 import OrderList from "@/components/orders/OrderList";
 import { getOrders } from "@/lib/orderApi";
 

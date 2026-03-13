@@ -1,3 +1,5 @@
+
+//frontend/src/app/orders/[id]/page.tsx
 import OrderDetail from "@/components/orders/OrderDetail";
 import { getOrder } from "@/lib/orderApi";
 

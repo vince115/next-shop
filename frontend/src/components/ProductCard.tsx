@@ -32,17 +32,17 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group block overflow-hidden rounded-2xl border-0 bg-white hover:shadow-md transition"
+      className="group block overflow-hidden rounded-2xl border-0 bg-white transition"
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm flex flex-col gap-3">
+      <div className="rounded-2xl bg-white p-5 mb-3 flex flex-col gap-3 border border-gray-200 hover:shadow-md">
         {/* 商品圖片 */}
-        <div className="relative w-full h-40 flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden">
+        <div className="relative w-full h-40 flex items-center justify-center bg-gray-50 rounded-xl  overflow-hidden">
           <Image
             src={image}
             alt={product.name}
             width={400}
             height={400}
-            className="max-h-full object-contain transition-transform duration-200 hover:scale-105"
+            className="max-h-full object-contain transition-transform duration-200 group-hover:scale-105"
           />
 
           <button

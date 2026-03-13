@@ -7,9 +7,13 @@ import com.nextshop.backend.product.Product;
 import com.nextshop.backend.product.InsufficientStockException;
 import com.nextshop.backend.product.ProductNotFoundException;
 import com.nextshop.backend.product.ProductRepository;
+import com.nextshop.backend.user.User;
+import com.nextshop.backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -22,6 +26,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
 
     public List<OrderResponse> listOrders() {
         return orderRepository.findAllWithItems().stream()
@@ -33,6 +38,15 @@ public class OrderService {
         Order order = orderRepository.findByIdWithItems(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
         return OrderResponse.from(order);
+    }
+
+    public List<OrderResponse> getMyOrders(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        return orderRepository.findByUserIdWithItems(user.getId()).stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 
     @Transactional

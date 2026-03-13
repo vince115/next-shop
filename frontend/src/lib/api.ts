@@ -2,10 +2,12 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
+console.log("🔍 API_URL =", API_URL);
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit
-): Promise<T | null> {
+): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     cache: "no-store",
     ...init,
@@ -17,7 +19,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     console.error("API ERROR", res.status);
-    return null;
+    throw new Error(`API request failed: ${res.status} ${res.statusText}`);
   }
 
   if (res.status === 204) return undefined as T;

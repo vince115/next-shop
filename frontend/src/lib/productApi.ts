@@ -19,11 +19,18 @@ export async function getProducts(
 
     const categoryQuery = categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : "";
     const sortQuery = sort ? `&sort=${encodeURIComponent(sort)}` : "";
-    const data = await apiFetch<Page<Product>>(
-        `/api/products?page=${page}&size=${size}${sortQuery}${categoryQuery}`
-    );
+    
+    try {
+        const data = await apiFetch<Page<Product>>(
+            `/api/products?page=${page}&size=${size}${sortQuery}${categoryQuery}`
+        );
 
-    if (!data) {
+        return {
+            ...data,
+            content: data.content.map(normalizeProduct),
+        };
+    } catch (error) {
+        console.error("Failed to fetch products:", error);
         return {
             content: [],
             totalElements: 0,
@@ -32,23 +39,12 @@ export async function getProducts(
             size,
         };
     }
-
-    return {
-        ...data,
-        content: data.content.map(normalizeProduct),
-    };
 }
 
 
 export async function getProduct(
     id: string | number
 ): Promise<Product> {
-
     const product = await apiFetch<Product>(`/api/products/${id}`);
-
-    if (!product) {
-        throw new Error("Failed to load product");
-    }
-
     return normalizeProduct(product);
 }

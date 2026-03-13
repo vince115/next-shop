@@ -14,12 +14,12 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Override
-    @EntityGraph(attributePaths = "images")
+    @EntityGraph(attributePaths = {"images", "category"})
     @NonNull
     org.springframework.data.domain.Page<Product> findAll(@NonNull org.springframework.data.domain.Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = "images")
+    @EntityGraph(attributePaths = {"images", "category"})
     @NonNull
     Optional<Product> findById(@NonNull Long id);
 
