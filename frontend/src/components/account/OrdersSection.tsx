@@ -9,10 +9,10 @@ interface OrdersSectionProps {
 export default function OrdersSection({ orders }: OrdersSectionProps) {
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">My Orders</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">我的訂單</h2>
       
       {orders.length === 0 ? (
-        <p className="text-gray-500">You haven't placed any orders yet.</p>
+        <p className="text-gray-500">您還沒有任何訂單</p>
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (

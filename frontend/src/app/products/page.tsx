@@ -1,8 +1,7 @@
 //frontend/src/app/products/page.tsx
 import { getCategories } from "@/lib/categoryApi";
 import { getProducts } from "@/lib/productApi";
-import ProductsBrowser from "@/components/products/ProductsBrowser";
-import { CategorySidebarProvider } from "@/components/categories/CategorySidebarContext";
+import ProductsPageShell from "@/components/products/ProductsPageShell";
 
 export const metadata = {
   title: "Products — Next Shop",
@@ -21,23 +20,12 @@ export default async function ProductsPage({
   ]);
 
   return (
-    <main className="min-h-screen bg-white/80">
-      <div className="mx-auto max-w-7xl px-4 py-10">
-        <div className="mt-2 flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          {/* <p className="text-sm text-gray-500">{data.totalElements} items</p> */}
-        </div>
-
-        <CategorySidebarProvider>
-          <ProductsBrowser
-            products={data.content}
-            categories={categories}
-            initialQuery={q}
-            initialCategory={category}
-            initialSort={sort}
-          />
-        </CategorySidebarProvider>
-      </div>
-    </main>
+    <ProductsPageShell
+      categories={categories}
+      products={data.content}
+      initialQuery={q}
+      initialCategory={category}
+      initialSort={sort}
+    />
   );
 }
