@@ -1,12 +1,20 @@
-//frontend/src/app/layout.tsx
+// frontend/src/app/layout.tsx
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import CartInitializer from "@/components/CartInitializer";
 import { AuthProvider } from "@/context/AuthContext";
 import { LoginModalProvider } from "@/context/LoginModalContext";
 import { CategorySidebarProvider } from "@/components/categories/CategorySidebarContext";
+import LayoutShell from "@/components/LayoutShell"; // ✅ 加這個
+
+// ⚠️ CRITICAL ARCHITECTURE RULE
+// DO NOT render Navbar in RootLayout
+// Navbar is conditionally rendered in LayoutShell
+// Breaking this will cause:
+// - Admin layout bug
+// - Duplicate navbar rendering
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +33,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}>
@@ -35,8 +43,12 @@ export default function RootLayout({
           <LoginModalProvider>
             <CategorySidebarProvider>
               <CartInitializer />
-              <Navbar />
-              {children}
+
+              {/* ✅ Navbar 控制集中在這 */}
+              <LayoutShell>
+                {children}
+              </LayoutShell>
+
             </CategorySidebarProvider>
           </LoginModalProvider>
         </AuthProvider>
