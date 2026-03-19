@@ -31,8 +31,8 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already registered");
         });
 
-        Role role = roleRepository.findByName("customer")
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found: customer"));
+        Role role = roleRepository.findByName("CUSTOMER")
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found: CUSTOMER"));
 
         User user = new User();
         user.setEmail(request.email());
