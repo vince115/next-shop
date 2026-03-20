@@ -1,48 +1,29 @@
 //frontend/src/app/account/payments/page.tsx
 "use client";
 
-import { useState } from "react";
-import { CreditCard, Plus, Trash2, Star } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CreditCard, Plus, Trash2, Star, Loader2 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
+import { AddPaymentMethodModal } from "./AddPaymentMethodModal";
 
 interface PaymentMethod {
   id: number;
-  type: "visa" | "mastercard" | "jcb" | "amex";
+  provider: string;
+  brand: "visa" | "mastercard" | "jcb" | "amex";
   last4: string;
-  expiryMonth: string;
-  expiryYear: string;
-  holderName: string;
-  isDefault: boolean;
+  exp_month: number;
+  exp_year: number;
+  is_default: boolean;
 }
 
-const mockPayments: PaymentMethod[] = [
-  {
-    id: 1,
-    type: "visa",
-    last4: "4242",
-    expiryMonth: "12",
-    expiryYear: "2025",
-    holderName: "WANG XIAO MING",
-    isDefault: true,
-  },
-  {
-    id: 2,
-    type: "mastercard",
-    last4: "5555",
-    expiryMonth: "08",
-    expiryYear: "2026",
-    holderName: "WANG XIAO MING",
-    isDefault: false,
-  },
-];
-
-const cardBrandColors = {
+const cardBrandColors: Record<string, string> = {
   visa: "bg-blue-600",
   mastercard: "bg-orange-600",
   jcb: "bg-green-600",
   amex: "bg-indigo-600",
 };
 
-const cardBrandNames = {
+const cardBrandNames: Record<string, string> = {
   visa: "Visa",
   mastercard: "Mastercard",
   jcb: "JCB",
@@ -50,20 +31,56 @@ const cardBrandNames = {
 };
 
 export default function PaymentsPage() {
-  const [payments, setPayments] = useState<PaymentMethod[]>(mockPayments);
+  const [payments, setPayments] = useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const handleSetDefault = (id: number) => {
-    setPayments(
-      payments.map((payment) => ({
-        ...payment,
-        isDefault: payment.id === id,
-      }))
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const data = await apiFetch<PaymentMethod[]>("/api/payment-methods");
+      setPayments(data);
+    } catch (error) {
+      console.error("Failed to fetch payments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetDefault = async (id: number) => {
+    try {
+      await apiFetch(`/api/payment-methods/${id}/default`, {
+        method: "PATCH",
+      });
+      fetchPayments();
+    } catch (error) {
+      console.error("Failed to set default payment:", error);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("確定要刪除此卡片嗎？")) return;
+    try {
+      await apiFetch(`/api/payment-methods/${id}`, {
+        method: "DELETE",
+      });
+      fetchPayments();
+    } catch (error) {
+      console.error("Failed to delete payment:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
     );
-  };
-
-  const handleDelete = (id: number) => {
-    setPayments(payments.filter((payment) => payment.id !== id));
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -75,6 +92,7 @@ export default function PaymentsPage() {
         </div>
         <button
           type="button"
+          onClick={() => setShowAddModal(true)}
           className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
         >
           <Plus className="h-4 w-4" />
@@ -90,6 +108,7 @@ export default function PaymentsPage() {
             <p className="mt-2 text-sm text-gray-600">新增您的第一張信用卡</p>
             <button
               type="button"
+              onClick={() => setShowAddModal(true)}
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -100,14 +119,16 @@ export default function PaymentsPage() {
           payments.map((payment) => (
             <div
               key={payment.id}
-              className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+              className={`rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${
+                payment.is_default ? "border-gray-900 ring-1 ring-gray-900" : "border-gray-200"
+              }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
                   <div
                     className={`flex h-12 w-16 items-center justify-center rounded-lg ${
-                      cardBrandColors[payment.type]
-                    } text-white`}
+                      cardBrandColors[payment.brand.toLowerCase()] || "bg-gray-600"
+                    } text-white shadow-sm`}
                   >
                     <CreditCard className="h-6 w-6" />
                   </div>
@@ -115,10 +136,10 @@ export default function PaymentsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {cardBrandNames[payment.type]}
+                        {cardBrandNames[payment.brand.toLowerCase()] || payment.brand}
                       </h3>
-                      {payment.isDefault && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">
+                      {payment.is_default && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">
                           <Star className="h-3 w-3 fill-current" />
                           預設卡片
                         </span>
@@ -127,13 +148,12 @@ export default function PaymentsPage() {
 
                     <div className="space-y-1 text-sm text-gray-600">
                       <p className="font-mono text-base">•••• •••• •••• {payment.last4}</p>
-                      <p>持卡人：{payment.holderName}</p>
                       <p>
-                        到期日：{payment.expiryMonth}/{payment.expiryYear}
+                        到期日：{payment.exp_month.toString().padStart(2, "0")}/{payment.exp_year}
                       </p>
                     </div>
 
-                    {!payment.isDefault && (
+                    {!payment.is_default && (
                       <button
                         type="button"
                         onClick={() => handleSetDefault(payment.id)}
@@ -145,15 +165,16 @@ export default function PaymentsPage() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleDelete(payment.id)}
-                  disabled={payment.isDefault}
-                  className="rounded-xl border border-gray-200 p-2 text-gray-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-600 disabled:hover:border-gray-200"
-                  aria-label="刪除卡片"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(payment.id)}
+                    className="rounded-xl border border-gray-200 p-2 text-gray-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors disabled:opacity-50"
+                    aria-label="刪除卡片"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))
@@ -173,6 +194,16 @@ export default function PaymentsPage() {
             </p>
           </div>
         </div>
+      )}
+
+      {showAddModal && (
+        <AddPaymentMethodModal
+          onSuccess={() => {
+            setShowAddModal(false);
+            fetchPayments();
+          }}
+          onCancel={() => setShowAddModal(false)}
+        />
       )}
     </div>
   );
