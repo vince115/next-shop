@@ -140,4 +140,104 @@ MUST NOT: - Break layout system - Bypass apiFetch - Break auth flow
 
 ------------------------------------------------------------------------
 
+## 12. 🧪 Testing Strategy
+
+### 🎯 Goals
+
+- Ensure core flows are stable
+- Prevent auth / API regressions
+- Keep tests lightweight and maintainable
+
+------------------------------------------------------------------------
+
+### 🧩 Unit Testing (Vitest)
+
+Scope:
+- Utility functions
+- API modules (/src/lib)
+- Auth helpers (tokenStorage, authValidation)
+
+Rules:
+- DO NOT test UI rendering
+- DO NOT test layout components
+- DO test apiFetch behavior
+
+Required Coverage:
+
+✔ apiFetch:
+- attaches Authorization header
+- handles 401 correctly
+- does NOT clear token incorrectly
+
+✔ tokenStorage:
+- set / get / clear token
+
+✔ authValidation:
+- token validity check
+
+Example:
+
+/src/lib/api.test.ts
+/src/lib/auth/tokenStorage.test.ts
+
+------------------------------------------------------------------------
+
+### 🌐 E2E Testing (Playwright)
+
+Scope:
+- Critical user flows
+
+Required Tests:
+
+✔ Login Flow
+- user can login
+- token stored
+- redirect works
+
+✔ Protected Routes
+- /account requires login
+- /admin requires admin role
+
+✔ Orders Flow
+- open /account/orders
+- does NOT logout unexpectedly
+- API request includes Authorization
+
+✔ Admin Access
+- admin can access /admin/users
+- non-admin is blocked (403 or redirect)
+
+------------------------------------------------------------------------
+
+### 🚨 Forbidden
+
+- DO NOT mock apiFetch in E2E
+- DO NOT bypass auth system
+- DO NOT use test-only logic in production code
+
+------------------------------------------------------------------------
+
+### 🧠 Test Philosophy
+
+- Test behavior, not implementation
+- Focus on auth + API stability
+- Avoid over-testing UI
+
+------------------------------------------------------------------------
+
+### 🔐 Auth Regression Protection
+
+Every PR MUST pass:
+
+- Login flow test
+- /api/users/me returns valid user
+- No unexpected 401 loops
+
+If any of above fails → block merge
+
+Enforcement:
+- CI pipeline (Playwright)
+- Manual verification if CI not available
+
+------------------------------------------------------------------------
 # END
