@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { label: "我的帳戶", href: "/account" },
   { label: "我的訂單", href: "/account/orders" },
+  { label: "收件地址", href: "/account/addresses" },
+  { label: "付款方式", href: "/account/payments" },
+  { label: "帳戶安全", href: "/account/security" },
 ];
 
 export default function AccountSidebar() {
