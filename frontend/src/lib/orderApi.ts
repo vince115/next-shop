@@ -1,49 +1,32 @@
-//frontend/src/lib/orderApi.ts
+// frontend/src/lib/orderApi.ts
 
 import { apiFetch } from "./api";
 import { Order } from "@/types/order";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
+// ✅ 取得全部訂單（admin 或測試用）
 export async function getOrders(): Promise<Order[]> {
-    const res = await fetch(`${API_URL}/api/orders`, { cache: "no-store" });
-    if (!res.ok) {
-        throw new Error(`Failed to load orders (${res.status})`);
-    }
-    return (await res.json()) as Order[];
+  return apiFetch<Order[]>("/api/orders");
 }
 
+// ✅ 取得單筆訂單
 export async function getOrder(id: string | number): Promise<Order> {
-    const res = await fetch(`${API_URL}/api/orders/${id}`, { cache: "no-store" });
-    if (!res.ok) {
-        throw new Error(`Failed to load order ${id} (${res.status})`);
-    }
-    return (await res.json()) as Order;
+  return apiFetch<Order>(`/api/orders/${id}`);
 }
 
+// ✅ checkout
 export async function checkoutCart(cartId: number): Promise<Order> {
-    const order = await apiFetch<Order>(`/api/orders/checkout/${cartId}`, {
-        method: "POST",
-    });
-
-    if (!order) {
-        throw new Error("Checkout failed");
-    }
-
-    return order;
+  return apiFetch<Order>(`/api/orders/checkout/${cartId}`, {
+    method: "POST",
+  });
 }
 
-export async function getMyOrders(token: string): Promise<Order[]> {
-    const res = await fetch(`${API_URL}/api/orders/my`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-    });
-
-    if (!res.ok) {
-        throw new Error(`Failed to load my orders (${res.status})`);
-    }
-
-    return (await res.json()) as Order[];
+// ✅ 取得自己的訂單（重點）
+export async function getMyOrders(): Promise<Order[]> {
+  return apiFetch<Order[]>("/api/orders/my");
 }
+
+/**
+ * ✅ 向下相容（避免舊程式炸掉）
+ * 如果你某些地方還在用 getAllOrders
+ */
+export const getAllOrders = getOrders;

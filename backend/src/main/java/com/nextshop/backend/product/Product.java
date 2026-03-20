@@ -43,7 +43,7 @@ public class Product {
     @OrderBy("position ASC")
     private List<ProductImage> images = new ArrayList<>();
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @PrePersist

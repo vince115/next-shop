@@ -24,12 +24,17 @@ public class Category {
     @Column(nullable = false, unique = true)
     private String slug;
 
-    @Column(nullable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Category parent;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "deleted_at")
     private Instant deletedAt;
 
     @PrePersist

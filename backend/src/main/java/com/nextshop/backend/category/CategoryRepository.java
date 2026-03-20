@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
-    @Query("select c from Category c where c.deletedAt is null order by c.name asc")
+    @Query("select c from Category c left join fetch c.parent where c.deletedAt is null order by c.name asc")
     List<Category> findAllActiveOrderByName();
 
     Optional<Category> findBySlugAndDeletedAtIsNull(String slug);

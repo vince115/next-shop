@@ -27,20 +27,20 @@ public class Order {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
-    @Column(nullable = false)
+    @Column(name = "total_items", nullable = false)
     private Integer totalItems = 0;
 
-    @Column(nullable = false)
+    @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status = OrderStatus.PENDING;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
     @PrePersist

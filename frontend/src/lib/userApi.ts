@@ -1,23 +1,21 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+// frontend/src/lib/userApi.ts
 
-export interface UserProfile {
-  id: number;
-  email: string;
-  name: string;
-  phone: string | null;
-  role: string;
+import { apiFetch } from "./api";
+import { User } from "@/types/user";
+
+export type UserProfile = User;
+
+// 取得目前登入者資料
+export async function getUserProfile(): Promise<UserProfile> {
+  return apiFetch<UserProfile>("/api/users/me");
 }
 
-export async function getUserProfile(token: string): Promise<UserProfile> {
-  const res = await fetch(`${API_URL}/api/users/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+// 取得所有使用者（admin）
+export async function getUsers(): Promise<User[]> {
+  return apiFetch<User[]>("/api/users");
+}
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch user profile");
-  }
-
-  return res.json();
+// 取得單一使用者
+export async function getUser(id: number | string): Promise<User> {
+  return apiFetch<User>(`/api/users/${id}`);
 }
