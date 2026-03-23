@@ -1,3 +1,4 @@
+//frontend/src/components/products/ProductsPageShell.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,11 +6,11 @@ import CategorySidebar from "@/components/categories/CategorySidebar";
 import ProductsBrowser from "@/components/products/ProductsBrowser";
 import { useCategorySidebar } from "@/components/categories/CategorySidebarContext";
 import { Category } from "@/types/category";
-import { Product } from "@/types/product";
+import { Page, Product } from "@/types/product";
 
 interface ProductsPageShellProps {
   categories: Category[];
-  products: Product[];
+  productsPage: Page<Product>;
   initialQuery?: string;
   initialCategory?: string;
   initialSort?: string;
@@ -17,7 +18,7 @@ interface ProductsPageShellProps {
 
 export default function ProductsPageShell({
   categories,
-  products,
+  productsPage,
   initialQuery,
   initialCategory,
   initialSort,
@@ -47,7 +48,7 @@ export default function ProductsPageShell({
         <main className="flex-1">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
             <ProductsBrowser
-              products={products}
+              productsPage={productsPage}
               categories={categories}
               initialQuery={initialQuery}
               initialCategory={initialCategory}

@@ -63,13 +63,20 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-base font-semibold text-gray-900 leading-snug">
-            {product.name}
-          </h2>
+          <div className="flex flex-col gap-0.5">
+            {product.category && (
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-gray-400">
+                {product.category.name}
+              </span>
+            )}
+            <h2 className="text-base font-semibold text-gray-900 leading-snug">
+              {product.name}
+            </h2>
+          </div>
           <span
-            className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${product.stock > 0
-              ? "bg-green-50 text-green-700"
-              : "bg-red-50 text-red-500"
+            className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${product.stock > 0
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-rose-50 text-rose-500"
               }`}
           >
             {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}

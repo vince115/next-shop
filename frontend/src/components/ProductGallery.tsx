@@ -4,92 +4,85 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 
-type Props = {
-    name: string;
-    imageUrls?: string[] | null;
-    fallbackImage?: string | null;
-};
+interface ProductGalleryProps {
+  name: string;
+  imageUrls?: string[] | null;
+}
 
 export default function ProductGallery({
-    name,
-    imageUrls,
-    fallbackImage,
-}: Props) {
+  name,
+  imageUrls,
+}: ProductGalleryProps) {
+  const images = useMemo(() => {
+    return (imageUrls ?? []).filter(Boolean);
+  }, [imageUrls]);
 
-    const images = useMemo(() => {
-        const list = (imageUrls ?? []).filter(Boolean);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-        if (list.length > 0) return list;
+  const selectedImage = images[selectedIndex] ?? "/images/placeholder.png";
 
-        if (fallbackImage) return [fallbackImage];
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Large Main Image */}
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center p-12 transition-all">
+        {images.length > 0 ? (
+          <Image
+            src={selectedImage}
+            alt={name}
+            width={700}
+            height={700}
+            className="h-full w-full object-contain mix-blend-multiply transition-all duration-500 ease-out"
+            priority
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-gray-300">
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+              <circle cx="9" cy="9" r="2" />
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+            </svg>
+            <span className="mt-4 text-[10px] font-bold uppercase tracking-[0.3em]">
+              No Visuals Available
+            </span>
+          </div>
+        )}
+      </div>
 
-        return [];
-    }, [imageUrls, fallbackImage]);
-
-    const [selectedIndex, setSelectedIndex] = useState(0);
-
-    const selectedImage =
-        images[selectedIndex] ??
-        fallbackImage ??
-        "/images/placeholder.png";
-
-    return (
-        <div className="space-y-5">
-
-            {/* 主圖 */}
-            <div className="flex justify-center rounded-2xl border border-gray-200 bg-white p-10">
+      {/* Thumbnails */}
+      {images.length > 1 && (
+        <div className="flex flex-wrap gap-4">
+          {images.map((image, index) => {
+            const isActive = index === selectedIndex;
+            return (
+              <button
+                key={image + index}
+                onClick={() => setSelectedIndex(index)}
+                className={`relative h-20 w-20 overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                  isActive
+                    ? "border-black scale-105 shadow-sm"
+                    : "border-transparent bg-gray-50 hover:border-gray-300 grayscale-[0.5] hover:grayscale-0"
+                }`}
+              >
                 <Image
-                    src={selectedImage}
-                    alt={name}
-                    width={560}
-                    height={560}
-                    className="h-auto max-h-[460px] w-auto object-contain"
-                    priority
+                  src={image}
+                  alt={`${name} thumbnail ${index + 1}`}
+                  fill
+                  className="object-cover p-1.5 mix-blend-multiply"
                 />
-            </div>
-
-            {/* 縮圖列 */}
-            <div className="flex gap-3">
-
-                {Array.from({ length: 4 }).map((_, index) => {
-
-                    const image = images[index];
-
-                    if (!image) {
-                        return (
-                            <div
-                                key={index}
-                                className="flex h-[84px] w-[84px] items-center justify-center rounded-xl border border-dashed border-gray-300 text-xs text-gray-400"
-                            >
-                                image
-                            </div>
-                        );
-                    }
-
-                    const isActive = index === selectedIndex;
-
-                    return (
-                        <button
-                            key={image}
-                            onClick={() => setSelectedIndex(index)}
-                            className={`overflow-hidden rounded-xl border bg-white p-1 transition ${isActive
-                                ? "border-gray-900"
-                                : "border-gray-200 hover:border-gray-400"
-                                }`}
-                        >
-                            <Image
-                                src={image}
-                                alt={`${name} thumbnail ${index + 1}`}
-                                width={84}
-                                height={84}
-                                className="h-[74px] w-[74px] object-contain"
-                            />
-                        </button>
-                    );
-                })}
-
-            </div>
-
+              </button>
+            );
+          })}
         </div>
-    );
+      )}
+    </div>
+  );
 }
