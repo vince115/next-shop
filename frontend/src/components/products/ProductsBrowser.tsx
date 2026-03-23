@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { ChevronLeft, ChevronRight, LayoutGrid, List, Loader2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import { Category } from "@/types/category";
-import { Product } from "@/types/product";
+import { Page, Product } from "@/types/product";
 
 type SortOption = "default" | "sales" | "newest" | "price_asc" | "price_desc";
 
@@ -23,12 +23,6 @@ function mapInitialSort(value?: string): SortOption {
 }
 
 type ViewMode = "grid" | "list";
-
-function matchesQuery(product: Product, q: string) {
-  if (!q) return true;
-  const haystack = `${product.name ?? ""} ${product.description ?? ""}`.toLowerCase();
-  return haystack.includes(q.toLowerCase());
-}
 
 function getPageNumbers(current: number, totalPages: number) {
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i);
@@ -50,7 +44,7 @@ function getPageNumbers(current: number, totalPages: number) {
 }
 
 interface ProductsBrowserProps {
-  products: Product[];
+  productsPage: Page<Product>;
   categories: Category[];
   initialQuery?: string;
   initialCategory?: string;
@@ -59,7 +53,7 @@ interface ProductsBrowserProps {
 }
 
 export default function ProductsBrowser({
-  products,
+  productsPage,
   categories,
   initialQuery,
   initialCategory,
@@ -69,82 +63,83 @@ export default function ProductsBrowser({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
   const [query, setQuery] = useState(initialQuery ?? "");
   const [sort, setSort] = useState<SortOption>(mapInitialSort(initialSort));
   const [view, setView] = useState<ViewMode>("grid");
-  const [page, setPage] = useState(0);
 
-  const queryDebounceRef = useRef<number | null>(null);
+  const { content: products, totalElements: total, totalPages, number: currentPage } = productsPage;
 
-  const pageSize = 20;
+  const pageSize = productsPage.size;
+  const startIndex = currentPage * pageSize;
+  const endIndexExclusive = Math.min(startIndex + products.length, total);
 
-  const filteredSorted = useMemo(() => {
-    const filtered = products.filter((p) => matchesQuery(p, query));
-    return filtered;
-  }, [products, query]);
-
-  const total = filteredSorted.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const safePage = Math.min(page, totalPages - 1);
-
-  const startIndex = safePage * pageSize;
-  const endIndexExclusive = Math.min(startIndex + pageSize, total);
-  const visible = filteredSorted.slice(startIndex, endIndexExclusive);
-
-  const pageNumbers = getPageNumbers(safePage, totalPages);
-
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
   const rangeText = total === 0 ? "共 0 項" : `共 ${total} 項，第 ${startIndex + 1}-${endIndexExclusive} 項`;
 
-  function replaceUrl(next: { q?: string; sort?: SortOption }) {
+  function replaceUrl(next: { q?: string; sort?: SortOption; page?: number }) {
     const params = new URLSearchParams(searchParams?.toString());
 
-    if (next.q) params.set("q", next.q);
-    else params.delete("q");
-
-    if (next.sort && next.sort !== "default") params.set("sort", next.sort);
-    else params.delete("sort");
-
-    const qs = params.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname);
-  }
-
-  useEffect(() => {
-    setQuery(initialQuery ?? "");
-  }, [initialQuery]);
-
-  useEffect(() => {
-    setSort(mapInitialSort(initialSort));
-  }, [initialSort]);
-
-  useEffect(() => {
-    if (queryDebounceRef.current != null) {
-      window.clearTimeout(queryDebounceRef.current);
+    if (next.q !== undefined) {
+      if (next.q) params.set("q", next.q);
+      else params.delete("q");
+      params.delete("page"); // Reset page on search
     }
 
-    queryDebounceRef.current = window.setTimeout(() => {
-      replaceUrl({ q: query || undefined, sort });
-      queryDebounceRef.current = null;
-    }, 250);
+    if (next.sort !== undefined) {
+      if (next.sort && next.sort !== "default") params.set("sort", next.sort);
+      else params.delete("sort");
+    }
 
-    return () => {
-      if (queryDebounceRef.current != null) {
-        window.clearTimeout(queryDebounceRef.current);
-        queryDebounceRef.current = null;
-      }
-    };
+    if (next.page !== undefined) {
+      if (next.page > 0) params.set("page", next.page.toString());
+      else params.delete("page");
+    }
+
+    const qs = params.toString();
+    const url = qs ? `${pathname}?${qs}` : pathname;
+
+    startTransition(() => {
+      router.replace(url);
+    });
+  }
+
+  // Effect to sync URL q parameter while typing
+  useEffect(() => {
+    if (query === initialQuery) return;
+    const timer = setTimeout(() => {
+      replaceUrl({ q: query || undefined });
+    }, 500);
+    return () => clearTimeout(timer);
   }, [query]);
+
+  // Handle Enter key for search
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      replaceUrl({ q: query || undefined });
+    }
+  };
 
   return (
     <div className="space-y-6">
       <header className="bg-white/80 p-5 space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-gray-500">Products</p>
-          <h2 className="text-3xl font-bold text-gray-900">嚴選商品</h2>
-          <p className="mt-1 text-sm text-gray-600">{rangeText}</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.4em] text-gray-400">Inventory Catalog</p>
+            <h2 className="text-3xl font-bold text-gray-900 mt-1">嚴選商品</h2>
+            <p className="mt-1 text-sm text-gray-500 font-medium">{rangeText}</p>
+          </div>
+          {isPending && (
+            <div className="flex items-center gap-2 text-gray-400 animate-in fade-in zoom-in">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs font-semibold uppercase tracking-widest">Update...</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-4">
-          <div className="flex shrink-0 items-center gap-6 text-sm font-medium">
+        <div className="flex w-full flex-wrap items-center gap-4 border-b border-gray-200 pb-4">
+          <div className="flex shrink-0 items-center gap-6 text-sm font-bold">
             {quickSortTabs.map((tab) => {
               const isActive = sort === tab.value;
               return (
@@ -152,15 +147,13 @@ export default function ProductsBrowser({
                   key={tab.value}
                   type="button"
                   onClick={() => {
-                    setPage(0);
                     setSort(tab.value);
-                    replaceUrl({ q: query || undefined, sort: tab.value });
+                    replaceUrl({ sort: tab.value });
                   }}
-                  className={`pb-1 transition-colors ${
-                    isActive
-                      ? "text-gray-900 border-b-2 border-gray-900"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
+                  className={`pb-1 transition-colors border-b-2 ${isActive
+                    ? "text-gray-900 border-gray-900"
+                    : "text-gray-400 border-transparent hover:text-gray-600"
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -171,16 +164,14 @@ export default function ProductsBrowser({
           <div className="flex w-full max-w-sm flex-1 justify-center">
             <input
               value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="搜尋商品名稱或描述…"
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all font-medium"
             />
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3 ml-auto">
             <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1">
               <button
                 type="button"
@@ -200,16 +191,15 @@ export default function ProductsBrowser({
               </button>
             </div>
 
-            <label className="flex shrink-0 items-center gap-2 text-sm font-medium text-gray-700">
+            <label className="flex shrink-0 items-center gap-2">
               <select
                 value={sort}
                 onChange={(e) => {
                   const next = e.target.value as SortOption;
-                  setPage(0);
                   setSort(next);
-                  replaceUrl({ q: query || undefined, sort: next });
+                  replaceUrl({ sort: next });
                 }}
-                className="rounded-md border border-gray-200 bg-white py-3 px-1 text-sm text-gray-700 focus:border-gray-400 focus:outline-none"
+                className="rounded-xl border border-gray-200 bg-white py-2 px-3 text-sm font-semibold text-gray-700 focus:border-gray-400 focus:outline-none transition-all shadow-sm"
               >
                 <option value="default">綜合排序</option>
                 <option value="sales">熱銷排行</option>
@@ -222,46 +212,52 @@ export default function ProductsBrowser({
         </div>
       </header>
 
-      <div>
-        {visible.length === 0 ? (
-          <p className="py-20 text-center text-gray-400">No products found.</p>
+      <div className={`relative transition-opacity duration-300 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+        {products.length === 0 ? (
+          <div className="py-32 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in translate-y-4">
+            <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mb-2">
+              <Loader2 className="h-8 w-8 text-gray-200" />
+            </div>
+            <p className="text-xl font-bold text-gray-900">找不到相關商品</p>
+            <p className="text-sm text-gray-500 max-w-xs">嘗試調整您的搜尋關鍵字或分類標籤。</p>
+          </div>
         ) : view === "grid" ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {visible.map((product) => (
+            {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (
           <div className="space-y-4">
-            {visible.map((product) => (
+            {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
 
         {totalPages > 1 && (
-          <div className="mt-8 flex items-center justify-center gap-2">
+          <div className="mt-12 flex items-center justify-center gap-2">
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 disabled:opacity-40 hover:bg-gray-50"
+              onClick={() => replaceUrl({ page: currentPage - 1 })}
+              disabled={currentPage === 0}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 disabled:opacity-30 hover:bg-gray-50 transition-all font-bold shadow-sm"
               aria-label="Previous page"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} />
             </button>
 
             {pageNumbers.map((p, idx) =>
               p === "ellipsis" ? (
-                <span key={`e-${idx}`} className="px-2 text-sm text-gray-400">
+                <span key={`e-${idx}`} className="px-2 text-sm text-gray-400 font-bold">
                   …
                 </span>
               ) : (
                 <button
                   key={p}
                   type="button"
-                  onClick={() => setPage(p)}
-                  className={`h-10 min-w-10 rounded-xl border px-3 text-sm font-medium transition-colors ${p === safePage ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}
+                  onClick={() => replaceUrl({ page: p })}
+                  className={`h-11 min-w-11 rounded-xl border px-4 text-sm font-bold transition-all shadow-sm ${p === currentPage ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}
                 >
                   {p + 1}
                 </button>
@@ -270,12 +266,12 @@ export default function ProductsBrowser({
 
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage === totalPages - 1}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 disabled:opacity-40 hover:bg-gray-50"
+              onClick={() => replaceUrl({ page: currentPage + 1 })}
+              disabled={currentPage === totalPages - 1}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 disabled:opacity-30 hover:bg-gray-50 transition-all font-bold shadow-sm"
               aria-label="Next page"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={20} />
             </button>
           </div>
         )}
