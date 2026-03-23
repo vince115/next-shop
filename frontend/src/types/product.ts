@@ -1,8 +1,13 @@
 //frontend/src/types/product.ts
+export interface ProductCategory {
+  id: number;
+  name: string;
+}
+
 export interface ProductSummary {
   id: number;
   name: string;
-  imageUrls?: string[] | null;
+  imageUrls: string[];
   price: number;
   originalPrice?: number | null;
 }
@@ -10,6 +15,7 @@ export interface ProductSummary {
 export interface Product extends ProductSummary {
   description?: string | null;
   stock: number;
+  category: ProductCategory;
   createdAt: string;
 }
 
