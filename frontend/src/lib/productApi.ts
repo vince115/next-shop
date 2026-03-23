@@ -14,15 +14,17 @@ export async function getProducts(
     page = 0,
     size = 20,
     categorySlug?: string,
-    sort?: string
+    sort?: string,
+    query?: string
 ): Promise<Page<Product>> {
 
-    const categoryQuery = categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : "";
-    const sortQuery = sort ? `&sort=${encodeURIComponent(sort)}` : "";
+    const categoryParam = categorySlug ? `&category=${encodeURIComponent(categorySlug)}` : "";
+    const sortParam = sort ? `&sort=${encodeURIComponent(sort)}` : "";
+    const queryParam = query ? `&q=${encodeURIComponent(query)}` : "";
     
     try {
         const data = await apiFetch<Page<Product>>(
-            `/api/products?page=${page}&size=${size}${sortQuery}${categoryQuery}`
+            `/api/products?page=${page}&size=${size}${sortParam}${categoryParam}${queryParam}`
         );
 
         return {
