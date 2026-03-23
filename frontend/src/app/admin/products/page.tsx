@@ -1,15 +1,16 @@
 // frontend/src/app/admin/products/page.tsx
 
 import AdminProductsPageShell from "@/components/admin/AdminProductsPageShell";
+import { getProducts } from "@/lib/productApi";
 
-const products = [
-  { id: 1, name: "Luna Leather Backpack", price: 189.0, stock: 42 },
-  { id: 2, name: "Aero Wireless Earbuds", price: 129.0, stock: 15 },
-  { id: 3, name: "Terra Ceramic Mug", price: 32.5, stock: 120 },
-  { id: 4, name: "Pulse Smartwatch", price: 249.99, stock: 5 },
-  { id: 5, name: "Nimbus Throw Blanket", price: 79.0, stock: 64 },
-];
+export const metadata = {
+  title: "Admin Products — Next Shop",
+};
 
-export default function AdminProductsPage() {
-  return <AdminProductsPageShell products={products} />;
+export default async function AdminProductsPage() {
+  // Fetch all products for administration
+  // Using a large size for now as per simple implementation
+  const data = await getProducts(0, 1000);
+
+  return <AdminProductsPageShell products={data.content} />;
 }
