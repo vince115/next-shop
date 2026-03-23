@@ -17,6 +17,9 @@ export interface Product extends ProductSummary {
   stock: number;
   category: ProductCategory;
   createdAt: string;
+  brand?: string;
+  specs?: Record<string, string>;
+  features?: string[];
 }
 
 export interface Page<T> {
