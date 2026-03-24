@@ -78,9 +78,21 @@ export default function ProductsBrowser({
 
   const pageSize = 20;
 
+  // ✅ Fail Fast: Component returns null if props are broken (Data Integrity check)
+  if (!Array.isArray(products)) {
+    console.error("[CRITICAL ERROR] ProductsBrowser received invalid products type:", products);
+    return (
+      <div className="flex flex-col items-center justify-center p-20 text-center text-red-500 bg-red-50 rounded-3xl border-2 border-red-100 italic">
+        <p className="font-bold text-lg mb-2">⚠ Data Flow Interrupted</p>
+        <p className="text-sm opacity-80 uppercase tracking-widest">Expected [Array] but received [{typeof products}]</p>
+      </div>
+    );
+  }
+
+  console.log("[DEBUG] ProductsBrowser rendering with products length:", products.length);
+
   const filteredSorted = useMemo(() => {
-    const filtered = products.filter((p) => matchesQuery(p, query));
-    return filtered;
+    return products.filter((p) => matchesQuery(p, query));
   }, [products, query]);
 
   const total = filteredSorted.length;
@@ -250,7 +262,7 @@ export default function ProductsBrowser({
             >
               <ChevronLeft size={18} />
             </button>
-
+ 
             {pageNumbers.map((p, idx) =>
               p === "ellipsis" ? (
                 <span key={`e-${idx}`} className="px-2 text-sm text-gray-400">

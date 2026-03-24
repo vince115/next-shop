@@ -6,6 +6,7 @@ import java.util.List;
 
 public record CartResponse(
         Long id,
+        String uuid, // ✅ Frontend key for secure API interaction
         List<CartItemResponse> items,
         int totalItems,
         BigDecimal totalPrice,
@@ -22,7 +23,7 @@ public record CartResponse(
                 .map(CartItemResponse::subtotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return new CartResponse(cart.getId(), items, totalItems, totalPrice,
+        return new CartResponse(cart.getId(), cart.getUuid().toString(), items, totalItems, totalPrice,
                 cart.getCreatedAt(), cart.getUpdatedAt());
     }
 }

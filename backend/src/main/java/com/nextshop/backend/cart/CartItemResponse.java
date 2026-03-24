@@ -6,12 +6,15 @@ import java.math.BigDecimal;
 public record CartItemResponse(
         Long id,
         ProductSummary product,
+        Long variantId, // ✅ Support for variant tracking (Risk 2)
         Integer quantity,
+        BigDecimal priceAtAddTime, // ✅ Pricing baseline (Risk 4)
+        BigDecimal currentPrice, 
         BigDecimal subtotal) {
 
     static CartItemResponse from(CartItem item) {
-
-        BigDecimal price = item.getProduct().getPrice();
+        BigDecimal currentPrice = item.getProduct().getPrice();
+        BigDecimal priceAtAdd = item.getPriceAtAddTime() != null ? item.getPriceAtAddTime() : currentPrice;
 
         return new CartItemResponse(
                 item.getId(),
@@ -19,8 +22,11 @@ public record CartItemResponse(
                         item.getProduct().getId(),
                         item.getProduct().getName(),
                         item.getProduct().getImageUrl(),
-                        price),
+                        currentPrice),
+                item.getVariantId(),
                 item.getQuantity(),
-                price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                priceAtAdd,
+                currentPrice,
+                currentPrice.multiply(BigDecimal.valueOf(item.getQuantity())));
     }
 }

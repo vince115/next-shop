@@ -1,13 +1,53 @@
 //frontend/src/app/cart/page.tsx
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export default function CartPage() {
-  const { items, totalItems, totalPrice, updateItem, removeItem } =
-    useCartStore();
+  const router = useRouter();
+  const { items, totalItems, totalPrice, updateItem, removeItem, cartUuid } = useCartStore();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const handleCheckout = async () => {
+    if (!cartUuid || items.length === 0) return;
+
+    try {
+      setCheckoutLoading(true);
+      
+      /**
+       * ✅ Secure Checkout Initiation. 
+       * Uses public cartUuid to identify the session, preventing IDOR during the order intake phase.
+       */
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          cartUuid: cartUuid // Passed in JSON body as per backend security refactor
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create order from cart");
+      }
+
+      const orderData = await response.json();
+      const orderId = orderData.id;
+
+      // Redirect to checkout with the specific immutable order record generated from snapshot
+      router.push(`/checkout?orderId=${orderId}`);
+    } catch (err) {
+      console.error("[CHECKOUT INITIATION ERROR]", err);
+      alert("Failed to initiate checkout. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -141,12 +181,23 @@ export default function CartPage() {
             </p>
           </div>
 
-          <Link
-            href="/checkout"
-            className="rounded-xl bg-gray-900 px-8 py-3 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
+          <button
+            onClick={handleCheckout}
+            disabled={checkoutLoading}
+            className="flex items-center gap-2 rounded-xl bg-gray-900 px-8 py-3.5 text-sm font-bold text-white uppercase tracking-widest hover:bg-gray-800 transition-all disabled:opacity-40 active:scale-[0.98]"
           >
-            Checkout
-          </Link>
+            {checkoutLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <span>Checkout Now</span>
+                <ArrowRight size={16} />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </main>

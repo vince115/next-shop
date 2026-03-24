@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, Plus, Trash2, Star, Loader2 } from "lucide-react";
+import { CreditCard, Plus, Trash2, Star, Loader2, AlertTriangle, HelpCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { AddPaymentMethodModal } from "./AddPaymentMethodModal";
 
@@ -88,7 +88,7 @@ export default function PaymentsPage() {
         <div>
           <p className="text-sm uppercase tracking-wide text-gray-500">Payment Methods</p>
           <h1 className="text-3xl font-bold text-gray-900">付款方式</h1>
-          <p className="mt-2 text-gray-600">管理您的信用卡與付款方式</p>
+          <p className="mt-2 text-gray-600">管理您的信用卡與付款方式 (BETA)</p>
         </div>
         <button
           type="button"
@@ -98,6 +98,17 @@ export default function PaymentsPage() {
           <Plus className="h-4 w-4" />
           新增卡片
         </button>
+      </div>
+
+      <div className="rounded-2xl bg-amber-50 border border-amber-100 p-5 flex items-start gap-3.5 mb-8 shadow-sm">
+        <AlertTriangle size={24} className="text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <h3 className="text-sm font-bold text-amber-900">Important Note on Saved Methods</h3>
+          <p className="mt-1 text-[13px] leading-relaxed text-amber-800">
+            For security reasons, saved cards are currenty available for <strong>account viewing only</strong>. 
+            Automated checkout integration is not yet enabled. You will still need to manually enter your card information during the final checkout step.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -181,30 +192,20 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      {payments.length > 0 && (
+      <div className="rounded-xl border border-gray-100 bg-gray-50 p-6 shadow-sm mt-8">
+        <div className="flex items-center gap-2 mb-4 text-gray-900">
+          <HelpCircle size={18} />
+          <h4 className="font-bold">FAQ</h4>
+        </div>
         <div className="space-y-4">
-          <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-            預設卡片將自動套用至結帳流程，您可隨時變更。
-          </div>
-
-          <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-            <p className="font-medium mb-1">安全提示</p>
-            <p>
-              我們使用業界標準的 SSL 加密技術保護您的付款資訊。卡片資訊經過加密處理，NextShop 不會儲存完整卡號。
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-gray-800">為什麼結帳時無法選擇這些卡片？</p>
+            <p className="text-sm text-gray-600">
+              為了確保支付安全，我們目前僅在結帳頁面支援手動填寫卡號通過 Stripe 支付。Saved Card 整合功能正在開發中。
             </p>
           </div>
         </div>
-      )}
-
-      {showAddModal && (
-        <AddPaymentMethodModal
-          onSuccess={() => {
-            setShowAddModal(false);
-            fetchPayments();
-          }}
-          onCancel={() => setShowAddModal(false)}
-        />
-      )}
+      </div>
     </div>
   );
 }

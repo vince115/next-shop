@@ -1,63 +1,78 @@
 package com.nextshop.backend.payment;
 
+import com.nextshop.backend.order.Order;
+import com.nextshop.backend.order.OrderNotFoundException;
+import com.nextshop.backend.order.OrderRepository;
+import com.nextshop.backend.order.OrderStatus;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
-import jakarta.annotation.PostConstruct;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Production-safe PaymentIntent creation.
+ * Total amount is ALWAYS calculated on backend from Order database.
+ */
+@Slf4j
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@Slf4j
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class PaymentController {
 
-    @Value("${stripe.secret.key:sk_test_placeholder}")
+    private final OrderRepository orderRepository;
+
+    @Value("${stripe.secret.key}")
     private String stripeSecretKey;
 
-    @PostConstruct
-    public void init() {
-        Stripe.apiKey = stripeSecretKey;
-    }
-
     @PostMapping("/payment-intent")
-    public PaymentResponse createPaymentIntent(@Valid @RequestBody PaymentRequest request) {
-        log.info("[STRIPE] Creating DEMO PaymentIntent for orderId: {}", request.orderId());
-        
-        try {
-            // FIXED DEMO AMOUNT: $19.99 (USD) = 1999 cents
-            long demoAmount = 1999L;
-            String demoCurrency = "usd";
+    public Map<String, String> createPaymentIntent(@RequestBody PaymentRequest request) throws StripeException {
+        Stripe.apiKey = stripeSecretKey;
 
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(demoAmount)
-                    .setCurrency(demoCurrency)
-                    .putMetadata("order_id", request.orderId().toString())
-                    .setAutomaticPaymentMethods(
-                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
-                                    .setEnabled(true)
-                                    .build()
-                    )
-                    .build();
+        log.info("Creating PaymentIntent for orderId={}", request.orderId());
 
-            PaymentIntent intent = PaymentIntent.create(params);
-            
-            log.info("[STRIPE] PaymentIntent created: {} (Amount: {})", intent.getId(), demoAmount);
-            return new PaymentResponse(intent.getClientSecret());
-            
-        } catch (StripeException e) {
-            log.error("[STRIPE] Error creating PaymentIntent: {}", e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR, 
-                    "Failed to create PaymentIntent: " + e.getMessage()
-            );
+        // 1. Load Order from DB
+        Order order = orderRepository.findById(request.orderId())
+                .orElseThrow(() -> new OrderNotFoundException(request.orderId()));
+
+        // 2. Validate Status
+        if (order.getStatus() != OrderStatus.PENDING) {
+            log.warn("Cannot create PaymentIntent for order id={} with status={}", order.getId(), order.getStatus());
+            throw new IllegalStateException("Order must be in PENDING status to process payment. Currently: " + order.getStatus());
         }
+
+        // 3. Calculate amount in cents (Stripe required)
+        long amountCents = order.getTotalPrice().multiply(new BigDecimal(100)).longValue();
+
+        log.info("Designing PaymentIntent for orderId={} amount={} (cents) currency=usd", order.getId(), amountCents);
+
+        // 4. Create Stripe PaymentIntent with metadata.orderId
+        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                .setAmount(amountCents)
+                .setCurrency("usd") // Locked in backend
+                .setAutomaticPaymentMethods(
+                        PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                                .setEnabled(true)
+                                .build()
+                )
+                .putMetadata("orderId", order.getId().toString())
+                .build();
+
+        PaymentIntent paymentIntent = PaymentIntent.create(params);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("clientSecret", paymentIntent.getClientSecret());
+
+        log.info("Dispatched clientSecret for orderId={} PI ID={}", order.getId(), paymentIntent.getId());
+
+        return response;
     }
 }

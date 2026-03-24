@@ -10,10 +10,16 @@ public record OrderResponse(
         int totalItems,
         BigDecimal totalPrice,
         OrderStatus status,
+        String paymentIntentId,
+        String clientSecret,
         Instant createdAt,
         Instant updatedAt
 ) {
     static OrderResponse from(Order order) {
+        return from(order, null);
+    }
+
+    static OrderResponse from(Order order, String clientSecret) {
         List<OrderItemResponse> items = order.getItems().stream()
                 .map(OrderItemResponse::from)
                 .toList();
@@ -24,6 +30,8 @@ public record OrderResponse(
                 order.getTotalItems(),
                 order.getTotalPrice(),
                 order.getStatus(),
+                order.getPaymentIntentId(),
+                clientSecret,
                 order.getCreatedAt(),
                 order.getUpdatedAt());
     }

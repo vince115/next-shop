@@ -16,15 +16,18 @@ export default async function ProductsPage({
   const pageNum = parseInt(page ?? "0", 10);
   const size = 20;
 
-  const [categories, data] = await Promise.all([
+  // ✅ Fail Fast: Let the API call throw if no products or backend error
+  const [categories, products] = await Promise.all([
     getCategories(),
     getProducts(pageNum, size, category, sort, q),
   ]);
 
+  console.log("[DEBUG] ProductsPage fetched products count:", products.length);
+
   return (
     <ProductsPageShell
       categories={categories}
-      productsPage={data}
+      products={products}
       initialQuery={q}
       initialCategory={category}
       initialSort={sort}

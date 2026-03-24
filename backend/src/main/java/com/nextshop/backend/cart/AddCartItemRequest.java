@@ -12,6 +12,13 @@ public class AddCartItemRequest {
     @NotNull
     private Long productId;
 
+    /**
+     * ✅ Production SKU Support: Variant Identifier.
+     * Prevents 'quantity explosion' collision between different 
+     * variants of the same product (Risk 2 Fix).
+     */
+    private Long variantId;
+
     @NotNull
     @Min(1)
     private Integer quantity;
