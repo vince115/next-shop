@@ -21,13 +21,7 @@ public class OrderExpirationScheduler {
     public void runMaintenanceTasks() {
         log.debug("Starting order maintenance tasks...");
         try {
-            // Task A: Resolve out-of-order webhooks
-            orderService.processPendingWebhooks();
-            
-            // Task B: Reconcile PENDING orders with Stripe truth (Step 2 Goal 2)
-            orderService.reconcilePayments();
-
-            // Task C: Audit and cancel expired orders
+            // Audit and cancel expired orders
             orderService.autoCancelExpiredOrders();
         } catch (Exception e) {
             log.error("Failed to run order maintenance tasks: {}", e.getMessage());
