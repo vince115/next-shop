@@ -73,4 +73,13 @@ public class GlobalExceptionHandler {
         pd.setProperty("timestamp", Instant.now());
         return pd;
     }
+
+    @ExceptionHandler(Exception.class)
+    ProblemDetail handleGeneralException(Exception ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        pd.setTitle("Internal Server Error");
+        pd.setProperty("exceptionClass", ex.getClass().getName());
+        pd.setProperty("timestamp", Instant.now());
+        return pd;
+    }
 }
