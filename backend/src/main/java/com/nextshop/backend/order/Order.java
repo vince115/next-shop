@@ -49,6 +49,9 @@ public class Order {
     @Column(name = "stock_restored", nullable = false)
     private boolean stockRestored = false;
 
+    @Column(name = "expires_at", nullable = false)
+    private Instant expiresAt;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 

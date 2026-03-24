@@ -61,15 +61,33 @@ public class OrderService {
 
     @Transactional
     public OrderResponse checkout(CheckoutRequest request) {
-        log.info("Starting bound checkout for requestId={}", request.getRequestId());
-
-        return orderRepository.findByRequestIdWithItems(request.getRequestId())
-                .map(existingOrder -> {
-                    log.info("RequestId={} duplicate. Returning order id={}", 
-                        request.getRequestId(), existingOrder.getId());
-                    return OrderResponse.from(existingOrder);
-                })
-                .orElseGet(() -> processCheckout(request));
+        log.info("=== CHECKOUT START DEBUG ===");
+        log.info("REQUEST_DATA: requestId={}, userId={}, itemsCount={}", 
+            request.getRequestId(), request.getUserId(), request.getItems().size());
+        
+        // Log each item details
+        for (int i = 0; i < request.getItems().size(); i++) {
+            CheckoutItem item = request.getItems().get(i);
+            log.info("ITEM[{}]: productId={}, quantity={}", i, item.getProductId(), item.getQuantity());
+        }
+        
+        try {
+            return orderRepository.findByRequestIdWithItems(request.getRequestId())
+                    .map(existingOrder -> {
+                        log.info("DUPLICATE_REQUEST: requestId={} returning existing orderId={}", 
+                            request.getRequestId(), existingOrder.getId());
+                        return OrderResponse.from(existingOrder);
+                    })
+                    .orElseGet(() -> processCheckout(request));
+        } catch (Exception e) {
+            log.error("=== CHECKOUT FAILED ===");
+            log.error("ERROR_TYPE: {}", e.getClass().getSimpleName());
+            log.error("ERROR_MESSAGE: {}", e.getMessage());
+            log.error("REQUEST_DATA: requestId={}, userId={}", request.getRequestId(), request.getUserId());
+            log.error("FULL_STACK_TRACE:", e);
+            e.printStackTrace(); // Forced native stack trace for debugging
+            throw e;
+        }
     }
 
     /**
@@ -182,7 +200,7 @@ public class OrderService {
     @Transactional
     public void reconcilePayments() {
         Stripe.apiKey = stripeSecretKey;
-        List<Order> audits = orderRepository.findPendingOrdersBefore(Instant.now(), PageRequest.of(0, 50));
+        List<Order> audits = orderRepository.findExpiredPendingOrders(Instant.now(), PageRequest.of(0, 50));
 
         for (Order order : audits) {
             try {
@@ -211,8 +229,8 @@ public class OrderService {
     public void ensureStockConsistency(Order order) {
         OrderStatus status = order.getStatus();
 
-        // 1. PAID orders must NEVER have stock restored.
-        if (status == OrderStatus.PAID) {
+        // 1. PAID and FAILED orders must NEVER have stock restored.
+        if (status == OrderStatus.PAID || status == OrderStatus.FAILED) {
             if (order.isStockRestored()) {
                 // Critical Anomaly: If stock was returned but order is PAID, subtract it again. (Goal 3)
                 log.error("CONVERGENCE_FIX: Re-deducting stock for PAID order id={} that had an erroneous restoration.", order.getId());
@@ -223,8 +241,8 @@ public class OrderService {
             }
         }
 
-        // 2. TERMINATED orders must ALWAYS have stock restored (if not already). (Goal 3)
-        if (status == OrderStatus.FAILED || status == OrderStatus.CANCELLED) {
+        // 2. Only CANCELLED orders should restore stock (if not already). (Goal 3)
+        if (status == OrderStatus.CANCELLED) {
             if (!order.isStockRestored()) {
                 restoreStock(order);
                 orderRepository.save(order);
@@ -286,11 +304,30 @@ public class OrderService {
 
     @Transactional
     public void autoCancelExpiredOrders() {
-        Instant threshold = Instant.now().minus(10, ChronoUnit.MINUTES);
-        List<Order> expired = orderRepository.findPendingOrdersBefore(threshold, PageRequest.of(0, 20));
+        Instant now = Instant.now();
+        List<Order> expired = orderRepository.findExpiredPendingOrders(now, PageRequest.of(0, 20));
 
         for (Order order : expired) {
-            paymentFailed(order.getId());
+            // Re-fetch or re-check latest status from DB to prevent race conditions
+            Order latest = orderRepository.findById(order.getId())
+                .orElse(order);
+                
+            if (latest.getStatus() != OrderStatus.PENDING) {
+                log.info("SKIP_CANCEL: Order id={} is already status={}. Skipping.", 
+                    latest.getId(), latest.getStatus());
+                continue;
+            }
+
+            log.info("EXPIRED: Order id={} expired at {}. Automatic cancellation initiated.", 
+                latest.getId(), latest.getExpiresAt());
+            
+            latest.setStatus(OrderStatus.CANCELLED);
+            Order saved = orderRepository.save(latest);
+            
+            // Guard: ensureStockConsistency handles stockRestored idempotency (Goal 5 & 6)
+            ensureStockConsistency(saved);
+            
+            emitEvent(latest.getId(), "ORDER_EXPIRED", "{}");
         }
     }
 
@@ -372,55 +409,113 @@ public class OrderService {
     }
 
     private OrderResponse processCheckout(CheckoutRequest request) {
+        log.info("=== PROCESS_CHECKOUT START ===");
+        log.info("CREATING_ORDER: requestId={}, userId={}", request.getRequestId(), request.getUserId());
+        
         Order order = new Order();
         order.setUserId(request.getUserId());
         order.setRequestId(request.getRequestId());
         order.setStatus(OrderStatus.PENDING);
         order.setStockRestored(false);
+        order.setExpiresAt(Instant.now().plus(15, ChronoUnit.MINUTES));
         
         List<OrderItem> items = new ArrayList<>();
         BigDecimal totalPrice = BigDecimal.ZERO;
 
-        for (CheckoutItem item : request.getItems()) {
-            int updated = inventoryRepository.deductStockAtomic(item.getProductId(), item.getQuantity());
-            if (updated == 0) {
-                throw new InsufficientStockException(item.getProductId(), item.getQuantity(), 0);
+        try {
+            for (int i = 0; i < request.getItems().size(); i++) {
+                CheckoutItem item = request.getItems().get(i);
+                log.info("PROCESSING_ITEM[{}]: productId={}, quantity={}", i, item.getProductId(), item.getQuantity());
+                
+                // Get current stock before deduction
+                try {
+                    var inventoryOpt = inventoryRepository.findByProductId(item.getProductId());
+                    if (inventoryOpt.isPresent()) {
+                        int stockBefore = inventoryOpt.get().getStock();
+                        log.info("STOCK_BEFORE[{}]: productId={}, stock={}", i, item.getProductId(), stockBefore);
+                    } else {
+                        log.error("NO_INVENTORY_RECORD: productId={}", item.getProductId());
+                        throw new RuntimeException("No inventory record found for productId: " + item.getProductId());
+                    }
+                } catch (Exception e) {
+                    log.error("INVENTORY_CHECK_FAILED: productId={}, error={}", item.getProductId(), e.getMessage());
+                    throw e;
+                }
+                
+                // Attempt stock deduction
+                try {
+                    int updated = inventoryRepository.deductStockAtomic(item.getProductId(), item.getQuantity());
+                    log.info("STOCK_DEDUCTION_RESULT[{}]: productId={}, quantity={}, updatedRows={}", 
+                        i, item.getProductId(), item.getQuantity(), updated);
+                    
+                    if (updated == 0) {
+                        log.error("INSUFFICIENT_STOCK: productId={}, requestedQuantity={}", 
+                            item.getProductId(), item.getQuantity());
+                        throw new InsufficientStockException(item.getProductId(), item.getQuantity(), 0);
+                    }
+                } catch (Exception e) {
+                    log.error("STOCK_DEDUCTION_FAILED: productId={}, quantity={}, error={}", 
+                        item.getProductId(), item.getQuantity(), e.getMessage());
+                    throw e;
+                }
+
+                // Get product details
+                try {
+                    Product product = productRepository.findById(item.getProductId())
+                            .orElseThrow(() -> new ProductNotFoundException(item.getProductId()));
+                    
+                    log.info("PRODUCT_FOUND[{}]: productId={}, name={}, price={}", 
+                        i, item.getProductId(), product.getName(), product.getPrice());
+                    
+                    OrderItem orderItem = new OrderItem();
+                    orderItem.setOrder(order);
+                    orderItem.setProduct(product);
+                    orderItem.setPrice(product.getPrice());
+                    orderItem.setQuantity(item.getQuantity());
+                    orderItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                    items.add(orderItem);
+                    totalPrice = totalPrice.add(orderItem.getSubtotal());
+                    
+                    log.info("ORDER_ITEM_CREATED[{}]: subtotal={}, runningTotal={}", 
+                        i, orderItem.getSubtotal(), totalPrice);
+                        
+                } catch (Exception e) {
+                    log.error("PRODUCT_LOOKUP_FAILED: productId={}, error={}", item.getProductId(), e.getMessage());
+                    throw e;
+                }
             }
 
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new ProductNotFoundException(item.getProductId()));
+            log.info("FINALIZING_ORDER: totalItems={}, totalPrice={}", items.size(), totalPrice);
             
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setPrice(product.getPrice());
-            orderItem.setQuantity(item.getQuantity());
-            orderItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
-            items.add(orderItem);
-            totalPrice = totalPrice.add(orderItem.getSubtotal());
-        }
+            order.setItems(items);
+            order.setTotalPrice(totalPrice);
+            order.setTotalItems(items.stream().mapToInt(OrderItem::getQuantity).sum());
 
-        order.setItems(items);
-        order.setTotalPrice(totalPrice);
-        order.setTotalItems(items.stream().mapToInt(OrderItem::getQuantity).sum());
-
-        try {
-            Stripe.apiKey = stripeSecretKey;
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(totalPrice.multiply(BigDecimal.valueOf(100)).longValue())
-                    .setCurrency("usd")
-                    .setAutomaticPaymentMethods(
-                            PaymentIntentCreateParams.AutomaticPaymentMethods.builder().setEnabled(true).build()
-                    )
-                    .build();
-
-            PaymentIntent pi = PaymentIntent.create(params);
-            order.setPaymentIntentId(pi.getId());
-            Order saved = orderRepository.save(order);
-            emitEvent(saved.getId(), "ORDER_CREATED", "{}");
-            return OrderResponse.from(saved, pi.getClientSecret());
-        } catch (StripeException e) {
-            throw new RuntimeException("Stripe unavailable", e);
+            // Save order
+            try {
+                Order saved = orderRepository.save(order);
+                log.info("ORDER_SAVED: orderId={}", saved.getId());
+                
+                emitEvent(saved.getId(), "ORDER_CREATED", "{}");
+                
+                OrderResponse response = OrderResponse.from(saved);
+                log.info("=== PROCESS_CHECKOUT SUCCESS ===");
+                return response;
+                
+            } catch (Exception e) {
+                log.error("ORDER_SAVE_FAILED: error={}", e.getMessage());
+                log.error("ORDER_SAVE_STACK_TRACE:", e);
+                throw e;
+            }
+            
+        } catch (Exception e) {
+            log.error("=== PROCESS_CHECKOUT FAILED ===");
+            log.error("ERROR_TYPE: {}", e.getClass().getSimpleName());
+            log.error("ERROR_MESSAGE: {}", e.getMessage());
+            log.error("REQUEST_CONTEXT: requestId={}, userId={}", request.getRequestId(), request.getUserId());
+            log.error("FULL_STACK_TRACE:", e);
+            e.printStackTrace();
+            throw e;
         }
     }
 }

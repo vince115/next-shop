@@ -68,7 +68,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("""
             SELECT o FROM Order o
             WHERE o.status = 'PENDING'
-            AND o.createdAt < :timestamp
+            AND o.expiresAt < :now
             """)
-    List<Order> findPendingOrdersBefore(@Param("timestamp") java.time.Instant timestamp, org.springframework.data.domain.Pageable pageable);
+    List<Order> findExpiredPendingOrders(@Param("now") java.time.Instant now, org.springframework.data.domain.Pageable pageable);
 }
