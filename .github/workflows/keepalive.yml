@@ -1,0 +1,33 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: "*/10 1-14 * * 1-5" # 台灣 09:00–22:59
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit Render API (retry)
+        run: |
+          URL="https://next-shop-508e.onrender.com/api/ping"
+
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i..."
+
+            status=$(curl -s --max-time 15 -o /dev/null -w "%{http_code}" $URL)
+            
+            echo "HTTP Status: $status"
+
+            if [ "$status" = "200" ]; then
+              echo "SUCCESS"
+              exit 0
+            fi
+
+            echo "Retrying in 10s..."
+            sleep 10
+          done
+
+          echo "ERROR: Failed after retries"
+          exit 1
